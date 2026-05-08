@@ -22,6 +22,12 @@ flutter run
 
 Place GGUF models via in-app download or adb into the app’s `files/models/` directory (see project docs / logs).
 
+## Documentation
+
+Detailed guides live under **[docs/](docs/)** — start at [docs/README.md](docs/README.md):
+
+- Architecture, Android engine (jniLibs), models & ADB, API & Postman, troubleshooting, product scope, roadmap.
+
 ## Contributing
 
 ### Git workflow
