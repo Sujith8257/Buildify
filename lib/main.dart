@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -716,6 +717,7 @@ class AiServerController extends StateNotifier<AiServerState> {
       _appendLog('prompt rejected: server is offline', LogType.warning);
       return;
     }
+
     state = state.copyWith(
       chat: [
         ...state.chat,
@@ -724,17 +726,92 @@ class AiServerController extends StateNotifier<AiServerState> {
       requestCount: state.requestCount + 1,
       requestsPerSecond: state.requestsPerSecond + 1,
     );
-    _appendLog('POST /completion 200', LogType.request);
-    await Future<void>.delayed(const Duration(milliseconds: 650));
-    final answer =
-        'Local response from ${selectedModel.name}: "$cleaned" would be sent '
-        'to llama.cpp with n_predict=${state.tokenLimit} and temperature=${state.temperature.toStringAsFixed(1)}.';
+
+    final port = state.port;
+    final maxTokens = state.tokenLimit;
+    final temperature = state.temperature;
+    final url = Uri.parse('http://127.0.0.1:$port/v1/chat/completions');
+    final body = jsonEncode({
+      'messages': [
+        {'role': 'user', 'content': cleaned},
+      ],
+      'max_tokens': maxTokens,
+      'temperature': temperature,
+    });
+
+    final stopwatch = Stopwatch()..start();
+    String answer;
+    try {
+      final resp = await http
+          .post(
+            url,
+            headers: const {'Content-Type': 'application/json'},
+            body: body,
+          )
+          .timeout(const Duration(seconds: 120));
+      stopwatch.stop();
+
+      if (resp.statusCode != 200) {
+        _appendLog(
+          'POST /v1/chat/completions ${resp.statusCode}',
+          LogType.warning,
+        );
+        answer =
+            'HTTP ${resp.statusCode}: '
+            '${resp.body.isEmpty ? 'no body' : resp.body}';
+      } else {
+        _appendLog('POST /v1/chat/completions 200', LogType.request);
+        answer = _extractAssistantText(resp.body, fallback: resp.body);
+      }
+    } on TimeoutException {
+      stopwatch.stop();
+      _appendLog('chat request timed out', LogType.warning);
+      answer = 'Request timed out after 120s. Try a smaller prompt.';
+    } catch (e) {
+      stopwatch.stop();
+      _appendLog('chat request failed: $e', LogType.warning);
+      answer = 'Request failed: $e';
+    }
+
     state = state.copyWith(
       chat: [
         ...state.chat,
         ChatMessage(text: answer, fromUser: false, createdAt: DateTime.now()),
       ],
     );
+  }
+
+  String _extractAssistantText(
+    String responseBody, {
+    required String fallback,
+  }) {
+    try {
+      final decoded = jsonDecode(responseBody);
+      if (decoded is Map<String, dynamic>) {
+        final choices = decoded['choices'];
+        if (choices is List && choices.isNotEmpty) {
+          final first = choices.first;
+          if (first is Map<String, dynamic>) {
+            final message = first['message'];
+            if (message is Map<String, dynamic>) {
+              final content = message['content'];
+              if (content is String && content.trim().isNotEmpty) {
+                return content.trim();
+              }
+            }
+            final text = first['text'];
+            if (text is String && text.trim().isNotEmpty) {
+              return text.trim();
+            }
+          }
+        }
+        final content = decoded['content'];
+        if (content is String && content.trim().isNotEmpty) {
+          return content.trim();
+        }
+      }
+    } catch (_) {}
+    return fallback;
   }
 
   @override
@@ -915,7 +992,7 @@ class _AiServerShellState extends ConsumerState<AiServerShell> {
     final pages = const [
       HomeScreen(),
       ModelStoreScreen(),
-      ChatScreen(),
+      SelfTestScreen(),
       NetworkScreen(),
     ];
 
@@ -947,9 +1024,9 @@ class _AiServerShellState extends ConsumerState<AiServerShell> {
             label: 'Models',
           ),
           NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'Chat',
+            icon: Icon(Icons.fact_check_outlined),
+            selectedIcon: Icon(Icons.fact_check),
+            label: 'Self test',
           ),
           NavigationDestination(
             icon: Icon(Icons.lan_outlined),
@@ -1088,15 +1165,16 @@ class ModelStoreScreen extends ConsumerWidget {
   }
 }
 
-class ChatScreen extends ConsumerStatefulWidget {
-  const ChatScreen({super.key});
+class SelfTestScreen extends ConsumerStatefulWidget {
+  const SelfTestScreen({super.key});
 
   @override
-  ConsumerState<ChatScreen> createState() => _ChatScreenState();
+  ConsumerState<SelfTestScreen> createState() => _SelfTestScreenState();
 }
 
-class _ChatScreenState extends ConsumerState<ChatScreen> {
+class _SelfTestScreenState extends ConsumerState<SelfTestScreen> {
   final input = TextEditingController();
+  bool _sending = false;
 
   @override
   void dispose() {
@@ -1121,8 +1199,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     padding: const EdgeInsets.all(14),
                     child: Text(
                       running
-                          ? 'Ready for local prompts.'
-                          : 'Start the AI server to test prompts.',
+                          ? 'Self test — calls your running server at '
+                              'http://127.0.0.1:${state.port}/v1/chat/completions '
+                              '(same API as Postman from your laptop).'
+                          : 'Start the AI server, then use this tab to verify it answers.',
                       style: const TextStyle(color: AppPalette.muted),
                     ),
                   ),
@@ -1163,6 +1243,37 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ),
                   ),
                 ),
+              if (_sending)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppPalette.surfaceAlt,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppPalette.border),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        SizedBox(
+                          height: 14,
+                          width: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppPalette.teal,
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'thinking…',
+                          style: TextStyle(color: AppPalette.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -1175,11 +1286,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: input,
-                    enabled: running,
+                    enabled: running && !_sending,
                     minLines: 1,
                     maxLines: 4,
                     decoration: InputDecoration(
-                      hintText: running ? 'Prompt' : 'Server offline',
+                      hintText:
+                          !running
+                              ? 'Server offline'
+                              : (_sending ? 'Waiting for reply…' : 'Prompt'),
                       filled: true,
                       fillColor: AppPalette.surface,
                       border: OutlineInputBorder(
@@ -1192,8 +1306,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
                 const SizedBox(width: 8),
                 IconButton.filled(
-                  tooltip: 'Send',
-                  onPressed: running ? _send : null,
+                  tooltip: 'Send test prompt',
+                  onPressed: (running && !_sending) ? _send : null,
                   icon: const Icon(Icons.send),
                 ),
               ],
@@ -1204,10 +1318,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  void _send() {
+  Future<void> _send() async {
+    if (_sending) return;
     final prompt = input.text;
+    if (prompt.trim().isEmpty) return;
     input.clear();
-    unawaited(ref.read(aiServerProvider.notifier).sendPrompt(prompt));
+    setState(() => _sending = true);
+    try {
+      await ref.read(aiServerProvider.notifier).sendPrompt(prompt);
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 }
 
