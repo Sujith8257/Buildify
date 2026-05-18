@@ -79,3 +79,10 @@ llama-b*/
 *.apk
 *.aab
 *.ipa
+
+# Marketing site (website/) — Node-side ignores
+website/node_modules
+website/.next
+website/.vercel
+website/.data
+website/out

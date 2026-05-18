@@ -28,6 +28,19 @@ Detailed guides live under **[docs/](docs/)** — start at [docs/README.md](docs
 
 - Architecture, Android engine (jniLibs), models & ADB, API & Postman, troubleshooting, product scope, roadmap.
 
+## Marketing site
+
+The promo site for **buildify.me** lives in **[website/](website/)** (Next.js 16 + Tailwind 4 + shadcn + Magic UI). It auto-renders the docs in `docs/` at build time.
+
+```bash
+cd website
+pnpm install
+pnpm dev      # http://localhost:3000
+pnpm build    # production build
+```
+
+Deployment notes are in [website/README.md](website/README.md).
+
 ## Contributing
 
 ### Git workflow
