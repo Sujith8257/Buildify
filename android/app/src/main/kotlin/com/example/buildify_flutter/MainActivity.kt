@@ -1,8 +1,12 @@
 package com.example.buildify_flutter
 
+import android.app.ActivityManager
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.Environment
+import android.os.StatFs
 import android.text.format.Formatter
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -80,6 +84,10 @@ class MainActivity : FlutterActivity() {
                         result.success(getLocalIpAddress())
                     }
 
+                    "getTailscaleIp" -> {
+                        result.success(getTailscaleIpAddress())
+                    }
+
                     "startTunnel" -> {
                         val port = call.argument<Int>("port") ?: 8080
                         val tunnelUrl = call.argument<String>("tunnelUrl")
@@ -112,6 +120,10 @@ class MainActivity : FlutterActivity() {
                         )
                     }
 
+                    "getDeviceMetrics" -> {
+                        result.success(getDeviceMetrics())
+                    }
+
                     else -> result.notImplemented()
                 }
             }
@@ -121,7 +133,10 @@ class MainActivity : FlutterActivity() {
         NetworkInterface.getNetworkInterfaces()?.toList()?.forEach { intf ->
             intf.inetAddresses.toList().forEach { address ->
                 if (!address.isLoopbackAddress && address is Inet4Address) {
-                    return address.hostAddress ?: "0.0.0.0"
+                    val name = intf.name.lowercase()
+                    if (name != "tailscale0" && name != "wg0") {
+                        return address.hostAddress ?: "0.0.0.0"
+                    }
                 }
             }
         }
@@ -129,5 +144,66 @@ class MainActivity : FlutterActivity() {
         val wifi = applicationContext.getSystemService(WIFI_SERVICE) as? WifiManager
         val ip = wifi?.connectionInfo?.ipAddress ?: 0
         return if (ip != 0) Formatter.formatIpAddress(ip) else "0.0.0.0"
+    }
+
+    private fun getTailscaleIpAddress(): String? {
+        NetworkInterface.getNetworkInterfaces()?.toList()?.forEach { intf ->
+            val name = intf.name.lowercase()
+            if (name == "tailscale0" || name == "wg0" || name.startsWith("ts") && name.length <= 5) {
+                intf.inetAddresses.toList().forEach { address ->
+                    if (!address.isLoopbackAddress && address is Inet4Address) {
+                        return address.hostAddress
+                    }
+                }
+            }
+        }
+        // Fallback: look for any 100.x.x.x address (Tailscale CGNAT range)
+        NetworkInterface.getNetworkInterfaces()?.toList()?.forEach { intf ->
+            intf.inetAddresses.toList().forEach { address ->
+                if (!address.isLoopbackAddress && address is Inet4Address) {
+                    val ip = address.hostAddress ?: return@forEach
+                    if (ip.startsWith("100.")) {
+                        return ip
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun getDeviceMetrics(): Map<String, Any> {
+        val am = applicationContext.getSystemService(ACTIVITY_SERVICE) as ActivityManager
+        val memInfo = ActivityManager.MemoryInfo()
+        am.getMemoryInfo(memInfo)
+        val totalMemGb = memInfo.totalMem / (1024 * 1024 * 1024)
+        val availMemGb = memInfo.availMem.toDouble() / (1024 * 1024 * 1024)
+
+        val dataDir = Environment.getDataDirectory()
+        val stat = StatFs(dataDir.path)
+        val freeStorageGb = (stat.availableBlocksLong * stat.blockSizeLong).toDouble() / (1024 * 1024 * 1024)
+
+        val batteryIntent = applicationContext.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        val batteryPercent = batteryIntent?.let {
+            val level = it.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1)
+            val scale = it.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, -1)
+            if (level >= 0 && scale > 0) (level * 100) / scale else 0
+        } ?: 0
+        val batteryCharging = batteryIntent?.let {
+            val status = it.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1)
+            status == android.os.BatteryManager.BATTERY_STATUS_CHARGING ||
+                status == android.os.BatteryManager.BATTERY_STATUS_FULL
+        } ?: false
+
+        val cpuCores = Runtime.getRuntime().availableProcessors()
+        val cpuLabel = "${cpuCores}-core ARM"
+
+        return mapOf(
+            "ramGb" to totalMemGb.toInt(),
+            "availRamGb" to (Math.round(availMemGb * 10.0) / 10.0),
+            "freeStorageGb" to (Math.round(freeStorageGb * 10.0) / 10.0),
+            "batteryPercent" to batteryPercent,
+            "batteryCharging" to batteryCharging,
+            "cpuLabel" to cpuLabel,
+        )
     }
 }
