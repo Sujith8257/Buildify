@@ -959,14 +959,14 @@ class AiServerController extends StateNotifier<AiServerState> {
     _appendLog('server stopped', LogType.system);
   }
 
-  Future<void> startTunnel() async {
+  Future<bool> startTunnel() async {
     if (state.tunnel.status == TunnelStatus.running ||
         state.tunnel.status == TunnelStatus.starting) {
-      return;
+      return false;
     }
     if (state.status != ServerStatus.running) {
       _appendLog('start the AI server before enabling tunnel', LogType.warning);
-      return;
+      return false;
     }
     state = state.copyWith(tunnel: const TunnelState(status: TunnelStatus.starting));
     _appendLog('starting cloudflare tunnel on port ${state.port}', LogType.system);
@@ -976,9 +976,10 @@ class AiServerController extends StateNotifier<AiServerState> {
         tunnel: TunnelState(status: TunnelStatus.failed, lastError: response.message),
       );
       _appendLog('tunnel start failed: ${response.message}', LogType.warning);
-      return;
+      return false;
     }
     _pollTunnelStatus();
+    return true;
   }
 
   Future<void> stopTunnel() async {
@@ -1933,7 +1934,16 @@ class NetworkScreen extends ConsumerWidget {
                         onPressed: tunnel.status == TunnelStatus.running ||
                                 tunnel.status == TunnelStatus.starting
                             ? null
-                            : () => unawaited(controller.startTunnel()),
+                            : () async {
+                              final ok = await controller.startTunnel();
+                              if (!ok && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Start the AI server before enabling tunnel'),
+                                  ),
+                                );
+                              }
+                            },
                         icon: Icon(
                           tunnel.status == TunnelStatus.running
                               ? Icons.cloud_done
