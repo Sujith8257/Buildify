@@ -9,6 +9,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+const _catalogRemoteUrl =
+    'https://raw.githubusercontent.com/nicobots/Buildify/main/assets/models/catalog.json';
+
 void main() {
   runApp(const ProviderScope(child: BuildifyApp()));
 }
@@ -104,6 +107,20 @@ class ModelProfile {
   final String quality;
   final int requiredRamGb;
   final String description;
+
+  factory ModelProfile.fromJson(Map<String, dynamic> json) {
+    return ModelProfile(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      fileName: json['fileName'] as String,
+      downloadUrl: json['downloadUrl'] as String,
+      sizeLabel: json['sizeLabel'] as String,
+      speed: json['speed'] as String,
+      quality: json['quality'] as String,
+      requiredRamGb: json['requiredRamGb'] as int,
+      description: json['description'] as String,
+    );
+  }
 }
 
 class ModelDownload {
@@ -295,14 +312,8 @@ class AiServerController extends StateNotifier<AiServerState> {
   AiServerController()
     : super(
         AiServerState(
-          models: _modelCatalog,
-          downloads: {
-            for (final model in _modelCatalog)
-              model.id: const ModelDownload(
-                status: ModelDownloadStatus.notDownloaded,
-                progress: 0,
-              ),
-          },
+          models: const [],
+          downloads: {},
           device: const DeviceSnapshot(
             ramGb: 8,
             freeStorageGb: 43.6,
@@ -310,7 +321,7 @@ class AiServerController extends StateNotifier<AiServerState> {
             ipAddress: '192.168.0.121',
             cpuLabel: '8-core ARM',
           ),
-          selectedModelId: _modelCatalog.first.id,
+          selectedModelId: '',
           status: ServerStatus.stopped,
           port: 8080,
           requestCount: 0,
@@ -329,48 +340,91 @@ class AiServerController extends StateNotifier<AiServerState> {
           security: SecuritySettings.empty,
         ),
       ) {
+    unawaited(_loadCatalogAndHydrate());
+  }
+
+  static List<ModelProfile> _parseCatalog(String jsonStr) {
+    final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
+    final list = decoded['models'] as List<dynamic>;
+    return list
+        .map((e) => ModelProfile.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> _loadCatalogAndHydrate() async {
+    List<ModelProfile> catalog;
+    try {
+      final bundled = await rootBundle.loadString(
+        'assets/models/catalog.json',
+      );
+      catalog = _parseCatalog(bundled);
+    } catch (e) {
+      catalog = const [];
+    }
+    if (catalog.isEmpty) {
+      _appendLog('no bundled model catalog found', LogType.warning);
+    }
+    final downloads = <String, ModelDownload>{};
+    for (final model in catalog) {
+      downloads[model.id] = const ModelDownload(
+        status: ModelDownloadStatus.notDownloaded,
+        progress: 0,
+      );
+    }
+    state = state.copyWith(
+      models: catalog,
+      selectedModelId: catalog.isEmpty ? '' : catalog.first.id,
+      downloads: downloads,
+    );
+    _appendLog('loaded ${catalog.length} model(s) from catalog', LogType.system);
     unawaited(_hydrateNativeState());
     unawaited(_loadSecuritySettings());
   }
 
-  static const _modelCatalog = [
-    ModelProfile(
-      id: 'tinyllama-q4',
-      name: 'TinyLlama 1.1B Q4',
-      fileName: 'tinyllama-1.1b-chat-v1.0-q4_k_m.gguf',
-      downloadUrl:
-          'https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
-      sizeLabel: '~669 MB',
-      speed: 'Fast',
-      quality: 'Basic',
-      requiredRamGb: 4,
-      description: 'Small, quick, and practical for low-memory phones.',
-    ),
-    ModelProfile(
-      id: 'qwen2-1_5b-q4',
-      name: 'Qwen2 1.5B Q4',
-      fileName: 'qwen2-1_5b-instruct-q4_k_m.gguf',
-      downloadUrl:
-          'https://huggingface.co/Qwen/Qwen2-1.5B-Instruct-GGUF/resolve/main/qwen2-1_5b-instruct-q4_k_m.gguf',
-      sizeLabel: '~986 MB',
-      speed: 'Medium',
-      quality: 'Balanced',
-      requiredRamGb: 4,
-      description: 'Multilingual, balanced quality for short answers.',
-    ),
-    ModelProfile(
-      id: 'phi-3-mini-q4',
-      name: 'Phi-3 Mini 4K Q4',
-      fileName: 'phi-3-mini-4k-instruct-q4_k_m.gguf',
-      downloadUrl:
-          'https://huggingface.co/bartowski/Phi-3-mini-4k-instruct-GGUF/resolve/main/Phi-3-mini-4k-instruct-Q4_K_M.gguf',
-      sizeLabel: '~2.4 GB',
-      speed: 'Medium',
-      quality: 'Reasoning',
-      requiredRamGb: 6,
-      description: 'Stronger reasoning if the device has enough RAM.',
-    ),
-  ];
+  Future<void> refreshCatalog() async {
+    try {
+      final resp = await http
+          .get(Uri.parse(_catalogRemoteUrl))
+          .timeout(const Duration(seconds: 15));
+      if (resp.statusCode != 200) {
+        _appendLog(
+          'catalog update failed: HTTP ${resp.statusCode}',
+          LogType.warning,
+        );
+        return;
+      }
+      final catalog = _parseCatalog(resp.body);
+      if (catalog.isEmpty) {
+        _appendLog('catalog update: remote catalog is empty', LogType.warning);
+        return;
+      }
+      final downloads = <String, ModelDownload>{};
+      for (final model in catalog) {
+        final existing = state.downloads[model.id];
+        if (existing != null) {
+          downloads[model.id] = existing;
+        } else {
+          downloads[model.id] = const ModelDownload(
+            status: ModelDownloadStatus.notDownloaded,
+            progress: 0,
+          );
+        }
+      }
+      final selectedId = state.selectedModelId.isNotEmpty &&
+              catalog.any((m) => m.id == state.selectedModelId)
+          ? state.selectedModelId
+          : catalog.first.id;
+      state = state.copyWith(
+        models: catalog,
+        selectedModelId: selectedId,
+        downloads: downloads,
+      );
+      _appendLog('catalog updated: ${catalog.length} model(s)', LogType.system);
+      await _scanExistingModels();
+    } catch (e) {
+      _appendLog('catalog update failed: $e', LogType.warning);
+    }
+  }
 
   Timer? _uptimeTimer;
   DateTime? _startedAt;
@@ -1340,18 +1394,49 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class ModelStoreScreen extends ConsumerWidget {
+class ModelStoreScreen extends ConsumerStatefulWidget {
   const ModelStoreScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ModelStoreScreen> createState() => _ModelStoreScreenState();
+}
+
+class _ModelStoreScreenState extends ConsumerState<ModelStoreScreen> {
+  bool _refreshing = false;
+
+  Future<void> _refreshCatalog() async {
+    setState(() => _refreshing = true);
+    try {
+      await ref.read(aiServerProvider.notifier).refreshCatalog();
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(aiServerProvider);
     final controller = ref.read(aiServerProvider.notifier);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        const _SectionTitle('Model Store'),
+        Row(
+          children: [
+            const Expanded(child: _SectionTitle('Model Store')),
+            IconButton.filledTonal(
+              tooltip: 'Update model catalog',
+              onPressed: _refreshing ? null : _refreshCatalog,
+              icon: _refreshing
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         for (final model in state.models) ...[
           ModelTile(
