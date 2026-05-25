@@ -142,32 +142,40 @@ class ModelDownload {
 class DeviceSnapshot {
   const DeviceSnapshot({
     required this.ramGb,
+    required this.availRamGb,
     required this.freeStorageGb,
     required this.batteryPercent,
+    required this.batteryCharging,
     required this.ipAddress,
     required this.tailscaleIp,
     required this.cpuLabel,
   });
 
   final int ramGb;
+  final double availRamGb;
   final double freeStorageGb;
   final int batteryPercent;
+  final bool batteryCharging;
   final String ipAddress;
   final String? tailscaleIp;
   final String cpuLabel;
 
   DeviceSnapshot copyWith({
     int? ramGb,
+    double? availRamGb,
     double? freeStorageGb,
     int? batteryPercent,
+    bool? batteryCharging,
     String? ipAddress,
     String? tailscaleIp,
     String? cpuLabel,
   }) {
     return DeviceSnapshot(
       ramGb: ramGb ?? this.ramGb,
+      availRamGb: availRamGb ?? this.availRamGb,
       freeStorageGb: freeStorageGb ?? this.freeStorageGb,
       batteryPercent: batteryPercent ?? this.batteryPercent,
+      batteryCharging: batteryCharging ?? this.batteryCharging,
       ipAddress: ipAddress ?? this.ipAddress,
       tailscaleIp: tailscaleIp ?? this.tailscaleIp,
       cpuLabel: cpuLabel ?? this.cpuLabel,
@@ -350,8 +358,10 @@ class AiServerController extends StateNotifier<AiServerState> {
           downloads: {},
           device: const DeviceSnapshot(
             ramGb: 8,
+            availRamGb: 4.0,
             freeStorageGb: 43.6,
             batteryPercent: 72,
+            batteryCharging: false,
             ipAddress: '192.168.0.121',
             tailscaleIp: null,
             cpuLabel: '8-core ARM',
@@ -463,6 +473,7 @@ class AiServerController extends StateNotifier<AiServerState> {
   }
 
   Timer? _uptimeTimer;
+  Timer? _metricsTimer;
   DateTime? _startedAt;
   final _native = const NativeServerBridge();
   String? _modelBasePath;
@@ -519,6 +530,24 @@ class AiServerController extends StateNotifier<AiServerState> {
       );
     }
     await _scanExistingModels();
+    _refreshMetrics();
+    _metricsTimer = Timer.periodic(const Duration(seconds: 10), (_) => _refreshMetrics());
+  }
+
+  void _refreshMetrics() {
+    _native.getDeviceMetrics().then((metrics) {
+      if (metrics == null) return;
+      state = state.copyWith(
+        device: state.device.copyWith(
+          ramGb: (metrics['ramGb'] as num?)?.toInt() ?? state.device.ramGb,
+          availRamGb: (metrics['availRamGb'] as num?)?.toDouble() ?? state.device.availRamGb,
+          freeStorageGb: (metrics['freeStorageGb'] as num?)?.toDouble() ?? state.device.freeStorageGb,
+          batteryPercent: (metrics['batteryPercent'] as num?)?.toInt() ?? state.device.batteryPercent,
+          batteryCharging: (metrics['batteryCharging'] as bool?) ?? state.device.batteryCharging,
+          cpuLabel: (metrics['cpuLabel'] as String?) ?? state.device.cpuLabel,
+        ),
+      );
+    });
   }
 
   Future<void> _loadSecuritySettings() async {
@@ -1189,6 +1218,7 @@ class AiServerController extends StateNotifier<AiServerState> {
     }
     _downloadClients.clear();
     _uptimeTimer?.cancel();
+    _metricsTimer?.cancel();
     super.dispose();
   }
 
@@ -1304,6 +1334,14 @@ class NativeServerBridge {
   Future<String?> getTailscaleIp() async {
     try {
       return await _channel.invokeMethod<String>('getTailscaleIp');
+    } on PlatformException {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getDeviceMetrics() async {
+    try {
+      return await _channel.invokeMapMethod<String, dynamic>('getDeviceMetrics');
     } on PlatformException {
       return null;
     }
@@ -2529,17 +2567,17 @@ class _DeviceGrid extends StatelessWidget {
       children: [
         _MetricPill(
           label: 'RAM',
-          value: '${device.ramGb} GB',
+          value: '${device.availRamGb.toStringAsFixed(1)} / ${device.ramGb} GB',
           color: AppPalette.teal,
         ),
         _MetricPill(
           label: 'Storage',
-          value: '${device.freeStorageGb.toStringAsFixed(1)} GB',
+          value: '${device.freeStorageGb.toStringAsFixed(1)} GB free',
           color: AppPalette.blue,
         ),
         _MetricPill(
           label: 'Battery',
-          value: '${device.batteryPercent}%',
+          value: '${device.batteryPercent}%${device.batteryCharging ? ' ⚡' : ''}',
           color: AppPalette.amber,
         ),
         _MetricPill(
