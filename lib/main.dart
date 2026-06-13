@@ -9,6 +9,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+import 'pages/ai_model_select_page.dart';
+import 'pages/projects_home_page.dart';
+
 const _catalogRemoteUrl =
     'https://raw.githubusercontent.com/Sujith8257/Buildify/main/assets/models/catalog.json';
 
@@ -57,7 +60,13 @@ class BuildifyApp extends ConsumerWidget {
           ),
         ),
       ),
-      home: const AiServerShell(),
+      home: Builder(
+        builder: (context) => ProjectsHomePage(
+          onRunAiModel: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const AiModelSelectPage()),
+          ),
+        ),
+      ),
     );
   }
 }
