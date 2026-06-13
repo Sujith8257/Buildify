@@ -45,9 +45,24 @@ Quick copy script (PowerShell, edit $src to match your tarball folder):
   )
   foreach ($f in $libs) { Copy-Item -Force (Join-Path $src $f) -Destination $dst }
 
-  # cloudflared (arm64) — build from source, rename to libcloudflared.so
-  # git clone --depth=1 https://github.com/cloudflare/cloudflared.git
-  # CGO_ENABLED=0 GOOS=android GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o libcloudflared.so ./cmd/cloudflared/
+  # cloudflared (arm64) — build from source, output MUST be named libcloudflared.so
+  #
+  # PowerShell (Go 1.21+ on Windows/macOS/Linux):
+  #   git clone --depth=1 https://github.com/cloudflare/cloudflared.git
+  #   cd cloudflared
+  #   $env:CGO_ENABLED="0"; $env:GOOS="android"; $env:GOARCH="arm64"
+  #   go build -trimpath -ldflags="-s -w" -o libcloudflared.so ./cmd/cloudflared/
+  #   Copy-Item -Force .\libcloudflared.so <this-folder>\libcloudflared.so
+  #
+  # Verify: file size ~25–30 MB, ELF magic 7F 45 4C 46. Rebuild APK after copy.
+  # Note: lib*.so here is gitignored — commit via Git LFS or ship in release artifacts.
+  #
+  # Android DNS: run scripts/build-cloudflared-android.ps1 from repo root (patches quick
+  # tunnel registration, edge SRV discovery, and feature TXT lookups to use 1.1.1.1:53).
+  # Without the patch you may see:
+  #   lookup api.trycloudflare.com on [::1]:53: connection refused
+  #   lookup region1.v2.argotunnel.com on [::1]:53: connection refused
+  # Workaround: Settings → Network → Private DNS → Off.
 
 After updating these files, fully rebuild the APK (flutter run).
 

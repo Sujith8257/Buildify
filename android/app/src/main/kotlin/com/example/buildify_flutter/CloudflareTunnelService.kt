@@ -90,6 +90,8 @@ class CloudflareTunnelService : Service() {
             } else {
                 "${install.nativeDir.absolutePath}:$existingPath"
             }
+            // Helps origin hostname resolution when supported; edge SRV uses patched cloudflared build.
+            pb.environment()["TUNNEL_DNS_RESOLVER_ADDRS"] = "1.1.1.1:53,8.8.8.8:53"
             pb.redirectErrorStream(true)
 
             val proc = try {
@@ -132,7 +134,11 @@ class CloudflareTunnelService : Service() {
             logThread?.join(2000)
 
             if (exitCode != 0 && lastError == null) {
-                lastError = "cloudflared exited with code $exitCode"
+                lastError = if (lastPublicUrl != null) {
+                    "tunnel disconnected (exit $exitCode). If DNS errors persist, turn off Android Private DNS in system settings."
+                } else {
+                    "cloudflared exited with code $exitCode"
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "runCloudflared failed", e)
