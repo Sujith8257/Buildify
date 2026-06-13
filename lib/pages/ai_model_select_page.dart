@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../main.dart';
+import '../models/ai_server_models.dart';
+import '../providers/ai_server_provider.dart';
 import 'service_detail_page.dart';
 
 /// Model picker — matches the "select ai model" HTML screen.
