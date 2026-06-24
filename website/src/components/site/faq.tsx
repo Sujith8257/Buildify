@@ -9,32 +9,32 @@ import {
 
 const faqs = [
   {
-    q: "Does this work on iPhone?",
-    a: "Not yet. Buildify is Android-only because iOS doesn’t allow running native binaries like llama-server from user apps. Android lets us load native libs from jniLibs. iOS support would require an in-process JNI/Swift port — on the roadmap, not in scope for v0.1.",
+    q: "What's the difference between Free and Pro?",
+    a: "The core app and local Wi-Fi hosting (e.g. 192.168.1.5:8080) are completely free and open-source forever. Buildify Pro ($3/mo) gives you a persistent custom subdomain (you.buildify.me), a web dashboard to track requests and latency, and priority model downloads. Pro turns your phone into a true cloud endpoint.",
+  },
+  {
+    q: "How does the custom subdomain (buildify.me) work?",
+    a: "When you upgrade to Pro, the app provisions a persistent Cloudflare Tunnel bound to your account. Instead of a random trycloudflare.com URL that changes every time you restart the app, you get a stable, branded URL that you can hardcode into your frontend apps or scripts.",
+  },
+  {
+    q: "Can I host non-AI backends too?",
+    a: "Not yet, but it's on our immediate roadmap! We are currently focused on providing the best local LLM experience with llama-server. Soon, we'll add support to run custom Node.js (Express) and Python (Flask/FastAPI) servers directly from the app.",
+  },
+  {
+    q: "Is it really free?",
+    a: "The base app is 100% free. The app is MIT-licensed, the engine (llama.cpp) is MIT, and the models are open weights. The only thing you pay is electricity. You only pay us if you want the premium cloud routing features (Pro).",
+  },
+  {
+    q: "Will it kill my battery?",
+    a: "Sustained inference is hot work. Buildify has auto-stop guards out of the box: idle timeout, low-battery cutoff, and thermal severity. You can tune each from the Home screen to protect your device.",
+  },
+  {
+    q: "Is the code open?",
+    a: "Yes! Buildify follows an Open Core model. The Android app and inference bridge are on GitHub and MIT-licensed. The backend infrastructure that powers the Pro features (tunnels, dashboard) is proprietary SaaS.",
   },
   {
     q: "Which phones can handle this?",
     a: "Any modern arm64-v8a Android phone. TinyLlama 1.1B and Qwen2 1.5B run on phones with 4 GB RAM. Phi-3 Mini 3.8B is comfortable on 6 GB+. Expect 10–25 tokens/sec on a Snapdragon 8 Gen 1 or newer.",
-  },
-  {
-    q: "Is it really free?",
-    a: "Yes. The app is MIT, the engine (llama.cpp) is MIT, the models are open weights. The only thing you pay is electricity. There is no cloud account.",
-  },
-  {
-    q: "Can other people on the internet hit my phone?",
-    a: "By default, no — Buildify binds to your local Wi-Fi network. Public access via Cloudflare Tunnel or Tailscale is on the roadmap, behind an explicit opt-in. We also ship API key auth and auto-stop so the LAN endpoint isn’t wide open.",
-  },
-  {
-    q: "Will it kill my battery?",
-    a: "Sustained inference is hot work. Buildify has three auto-stop guards out of the box: idle timeout, low-battery cutoff, and thermal severity. You can tune each from the Home screen.",
-  },
-  {
-    q: "How is this different from running llama.cpp in Termux?",
-    a: "Termux is amazing for hackers; it is not for normal people. Buildify is a single APK — install, tap, done. It also handles the Android-specific bits (foreground service, notification, native lib loading, autostop) that Termux scripts can’t cleanly do.",
-  },
-  {
-    q: "Is the code open?",
-    a: "Yes. Buildify lives on GitHub and is MIT-licensed. PRs welcome — read docs/ before opening.",
   },
 ];
 

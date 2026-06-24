@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { GithubIcon } from "@/components/site/icons";
@@ -54,15 +54,15 @@ export function Hero() {
               "text-muted-foreground hover:text-foreground"
             )}
           >
-            <span>Open source · v0.1 in private beta</span>
+            <span>Open Core · Free forever · Pro from $5/mo</span>
             <ArrowRight className="ml-1 size-3 transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
           </AnimatedShinyText>
         </Link>
 
         <h1 className="text-balance text-5xl font-bold tracking-tight sm:text-7xl">
-          <span className="block text-gradient">Your phone</span>
+          <span className="block text-gradient">Host anything.</span>
           <span className="block">
-            speaks <AuroraText>API</AuroraText> now.
+            From your <AuroraText>pocket</AuroraText>.
           </span>
         </h1>
 
@@ -73,9 +73,9 @@ export function Hero() {
           delay={0.2}
           className="mt-6 max-w-2xl text-balance text-lg leading-relaxed text-muted-foreground sm:text-xl"
         >
-          Run open-source LLMs locally on Android. Expose an OpenAI-compatible
-          HTTP server on your Wi-Fi. Call it from your laptop, your scripts,
-          your apps — for free, on your hardware.
+          Run LLMs and backends locally on Android. Get an OpenAI-compatible
+          API on your Wi-Fi — or a public URL at yourname.buildify.me.
+          Your hardware, your rules, zero cloud bill.
         </TextAnimate>
 
         <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
@@ -86,7 +86,7 @@ export function Hero() {
               background="oklch(0.11 0.015 260)"
             >
               <span className="flex items-center gap-2 whitespace-pre-wrap text-center text-sm font-medium leading-none tracking-tight text-foreground lg:text-base">
-                Join the waitlist
+                Get Started Free
                 <Sparkles className="h-4 w-4" />
               </span>
             </ShimmerButton>
@@ -104,8 +104,8 @@ export function Hero() {
         </div>
 
         <div className="mt-16 grid w-full max-w-3xl grid-cols-3 gap-4">
-          <Stat label="LLMs supported" value={3} suffix="+" />
-          <Stat label="Lines of code" value={2200} suffix="+" />
+          <Stat label="Models supported" value={6} suffix="+" />
+          <Stat label="Lines of code" value={3500} suffix="+" />
           <Stat label="Cloud spend" value={0} prefix="$" />
         </div>
 
@@ -165,7 +165,7 @@ function HeroPreview() {
             <span className="text-foreground">Server running</span>{" "}
             <span className="text-muted-foreground">on</span>{" "}
             <span className="text-[oklch(0.82_0.16_195)]">
-              192.168.1.5:8080
+              navadeep.buildify.me
             </span>
           </div>
           <div className="text-muted-foreground/80">
@@ -173,8 +173,9 @@ function HeroPreview() {
             tinyllama-1.1b-chat-v1.0.Q4.gguf loaded
           </div>
           <div className="text-muted-foreground/80">
-            <span className="text-[oklch(0.85_0.18_145)]">[system]</span>{" "}
-            api-key required · auto-stop @ 20% battery
+            <span className="text-[oklch(0.85_0.18_145)]">[tunnel]</span>{" "}
+            <span className="text-[oklch(0.82_0.16_195)]">PRO</span> persistent
+            subdomain active
           </div>
           <div className="text-muted-foreground/80">
             <span className="text-[oklch(0.82_0.16_195)]">[request]</span> POST
@@ -191,12 +192,12 @@ function HeroPreview() {
       <div className="p-6">
         <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
           <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[oklch(0.7_0.2_290)]" />
-          On your laptop
+          From anywhere
         </div>
         <pre className="overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed">
           <code className="text-muted-foreground/90">
             <span className="text-[oklch(0.7_0.2_290)]">curl</span>{" "}
-            http://192.168.1.5:8080/v1/chat/completions \{"\n"}
+            https://navadeep.buildify.me/v1/chat/completions \{"\n"}
             {"  "}-H{" "}
             <span className="text-[oklch(0.85_0.18_145)]">
               &quot;Authorization: Bearer bk_…&quot;
