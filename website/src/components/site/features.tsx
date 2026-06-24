@@ -5,8 +5,10 @@ import {
   Globe,
   KeyRound,
   Network,
+  Server,
   Smartphone,
   Wallet,
+  Crown,
 } from "lucide-react";
 
 import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
@@ -51,29 +53,49 @@ const features = [
     Icon: Cpu,
     name: "Curated open models",
     description:
-      "Pick from TinyLlama, Qwen2 1.5B, Phi-3 Mini — quantized GGUF, streamed straight to the device.",
+      "Pick from TinyLlama, Qwen2 1.5B, Phi-3 Mini, Gemma 2, and more — quantized GGUF, streamed to device.",
     href: "/docs/models-and-downloads",
     cta: "Browse catalog",
     background: <ModelMarqueeBackground />,
     className: "col-span-3 lg:col-span-2",
   },
   {
-    Icon: Network,
-    name: "LAN, then anywhere",
+    Icon: Crown,
+    name: "Custom subdomain",
     description:
-      "Default: same Wi-Fi network. Roadmap: Tailscale for private, Cloudflare Tunnel for public — opt-in.",
+      "Get yourname.buildify.me with Pro. A persistent, branded URL that makes your phone a public server.",
+    href: "/#pricing",
+    cta: "See Pro plan",
+    background: <SubdomainBackground />,
+    className: "col-span-3 lg:col-span-1",
+  },
+  {
+    Icon: Network,
+    name: "LAN & public tunnels",
+    description:
+      "Local Wi-Fi by default. Cloudflare Tunnel for public access — random URL on Free, branded on Pro.",
     href: "/docs/roadmap",
-    cta: "Roadmap",
+    cta: "Learn more",
     background: <NetworkBackground />,
-    className: "col-span-3 lg:col-span-2",
+    className: "col-span-3 lg:col-span-1",
+  },
+  {
+    Icon: Server,
+    name: "Host any backend (Soon)",
+    description:
+      "Soon: Not just LLMs — host Flask, Express, FastAPI or any HTTP server directly from your Android device.",
+    href: "/docs/roadmap",
+    cta: "See roadmap",
+    background: <BackendBackground />,
+    className: "col-span-3 lg:col-span-1",
   },
   {
     Icon: Wallet,
-    name: "$0 cloud bill",
+    name: "Free forever base",
     description:
-      "Your hardware, your tokens. No subscriptions, no rate limits, no surprise invoices.",
-    href: "/docs/product-vision",
-    cta: "Product vision",
+      "Your hardware, your tokens. No subscriptions needed for core features. Upgrade to Pro only when you want more.",
+    href: "/#pricing",
+    cta: "View pricing",
     background: <WalletBackground />,
     className: "col-span-3 lg:col-span-1",
   },
@@ -90,13 +112,13 @@ export function Features() {
           Features
         </span>
         <h2 className="mt-4 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-          Everything you need to run AI{" "}
+          Everything you need to host{" "}
           <span className="text-brand-gradient">from your pocket.</span>
         </h2>
         <p className="mt-4 text-balance text-muted-foreground">
-          Buildify is a single Android app, an OpenAI-compatible server, and a
-          set of safety guards — so a real LLM on a real phone is no longer a
-          hack.
+          Buildify is a single Android app — an OpenAI-compatible server, a
+          backend host, and a set of safety guards. Real hosting from a real
+          phone.
         </p>
       </div>
 
@@ -135,7 +157,7 @@ function PhoneBackground() {
               Server Running
             </div>
             <div className="mb-1 rounded-md bg-white/[0.03] px-1.5 py-1 text-muted-foreground">
-              192.168.1.5:8080
+              you.buildify.me
             </div>
             <div className="rounded-md bg-[oklch(0.82_0.16_195)]/15 px-1.5 py-1 text-[oklch(0.82_0.16_195)]">
               POST /v1/chat 200
@@ -152,7 +174,7 @@ function ApiBackground() {
     <div className="absolute inset-0 flex items-start justify-center p-4 opacity-80 [mask-image:linear-gradient(to_bottom,#000_30%,transparent_100%)]">
       <pre className="overflow-hidden font-mono text-[10px] leading-snug text-muted-foreground">
         {`POST /v1/chat/completions
-Host: 192.168.1.5:8080
+Host: you.buildify.me
 Authorization: Bearer bk_•••
 
 {
@@ -227,6 +249,31 @@ function ModelMarqueeBackground() {
   );
 }
 
+function SubdomainBackground() {
+  return (
+    <div className="absolute inset-0 flex items-start justify-center p-4 [mask-image:linear-gradient(to_bottom,#000_30%,transparent_100%)]">
+      <div className="w-full space-y-2">
+        <div className="flex items-center gap-2 rounded-lg border border-[oklch(0.82_0.16_195)]/20 bg-[oklch(0.82_0.16_195)]/[0.06] px-3 py-2.5 text-xs">
+          <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+          <span className="font-mono text-[oklch(0.82_0.16_195)]">
+            navadeep.buildify.me
+          </span>
+          <span className="ml-auto rounded bg-[oklch(0.82_0.16_195)]/15 px-1.5 py-0.5 text-[9px] font-medium uppercase text-[oklch(0.82_0.16_195)]">
+            Pro
+          </span>
+        </div>
+        <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5 text-xs text-muted-foreground">
+          <span className="inline-flex h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+          <span className="font-mono">abc123.trycloudflare.com</span>
+          <span className="ml-auto rounded bg-white/[0.04] px-1.5 py-0.5 text-[9px] uppercase text-muted-foreground">
+            Free
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NetworkBackground() {
   return (
     <div className="absolute inset-0 flex items-center justify-center [mask-image:linear-gradient(to_bottom,#000_20%,transparent_100%)]">
@@ -235,7 +282,40 @@ function NetworkBackground() {
         <Dots />
         <NodeBubble label="phone" highlight />
         <Dots />
-        <NodeBubble label="📡 anywhere" muted />
+        <NodeBubble label="🌐 public" muted />
+      </div>
+    </div>
+  );
+}
+
+function BackendBackground() {
+  const frameworks = [
+    { name: "llama-server", status: "supported", active: true },
+    { name: "Flask", status: "planned", active: false },
+    { name: "Express.js", status: "planned", active: false },
+    { name: "FastAPI", status: "planned", active: false },
+  ];
+  return (
+    <div className="absolute inset-0 flex items-start justify-center p-4 [mask-image:linear-gradient(to_bottom,#000_30%,transparent_100%)]">
+      <div className="w-full space-y-1.5">
+        {frameworks.map((fw) => (
+          <div
+            key={fw.name}
+            className="flex items-center justify-between rounded-md border border-white/5 bg-white/[0.02] px-3 py-2 text-xs"
+          >
+            <span className="text-muted-foreground">{fw.name}</span>
+            <span
+              className={cn(
+                "rounded px-1.5 py-0.5 text-[9px]",
+                fw.active
+                  ? "bg-emerald-500/10 text-emerald-400"
+                  : "bg-white/[0.04] text-muted-foreground/60"
+              )}
+            >
+              {fw.status}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );

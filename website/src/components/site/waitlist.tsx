@@ -89,15 +89,14 @@ export function Waitlist() {
               v0.1 — invite-only beta
             </span>
             <h2 className="mt-4 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              Get the first APK.
+              Join the waitlist.
               <br />
               <span className="text-brand-gradient">
-                Be the first server in your house.
+                Get early access to Pro.
               </span>
             </h2>
             <p className="mt-4 max-w-md text-balance text-muted-foreground">
-              Drop your email — we’ll send you the signed APK the moment v0.1
-              ships, plus a short note on how to point your laptop at it.
+              Drop your email to get the Free APK as soon as it's ready, plus early access to reserve your `buildify.me` custom subdomain.
             </p>
 
             <form
@@ -135,7 +134,7 @@ export function Waitlist() {
                 ) : status === "success" ? (
                   <>You’re in ✓</>
                 ) : (
-                  <>Get early access</>
+                  <>Join Waitlist</>
                 )}
               </Button>
             </form>
@@ -183,7 +182,7 @@ function FunFactCard({
       <p className="text-foreground/95">{text}</p>
       <div className="mt-6 grid grid-cols-2 gap-2 text-[10px] text-muted-foreground">
         <Pill label="GGUF" />
-        <Pill label="OpenAI-compat" />
+        <Pill label="buildify.me" />
         <Pill label="0.0.0.0:8080" />
         <Pill label="MIT" />
       </div>

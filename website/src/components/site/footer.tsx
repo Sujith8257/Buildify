@@ -8,6 +8,7 @@ const sections = [
     links: [
       { label: "Features", href: "/#features" },
       { label: "How it works", href: "/#how-it-works" },
+      { label: "Pricing", href: "/#pricing" },
       { label: "Demo", href: "/#demo" },
       { label: "Waitlist", href: "/#waitlist" },
     ],
@@ -19,6 +20,13 @@ const sections = [
       { label: "Architecture", href: "/docs/architecture" },
       { label: "API & testing", href: "/docs/api-and-testing" },
       { label: "Security & safety", href: "/docs/security-and-safety" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About", href: "https://github.com/Sujith8257/Buildify", external: true },
+      { label: "Contact", href: "mailto:team@buildify.me", external: true },
     ],
   },
   {
@@ -52,8 +60,8 @@ export function SiteFooter() {
   return (
     <footer className="relative mt-24 border-t border-white/5">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-10 md:grid-cols-4">
-          <div className="col-span-2 md:col-span-1">
+        <div className="grid grid-cols-2 gap-10 md:grid-cols-5">
+          <div className="col-span-2 md:col-span-2">
             <Link href="/" className="flex items-center gap-2">
               <Logo className="h-8 w-8" />
               <span className="text-base font-semibold tracking-tight">
@@ -62,7 +70,7 @@ export function SiteFooter() {
             </Link>
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
               Open-source Android app that turns your phone into a local AI
-              server.
+              server. Built on the Open Core model.
             </p>
             <div className="mt-4 flex items-center gap-2">
               <a

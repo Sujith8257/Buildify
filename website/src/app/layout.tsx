@@ -24,22 +24,24 @@ export const metadata: Metadata = {
     template: "%s · Buildify",
   },
   description:
-    "Turn your Android phone into a private LLM HTTP server. Open-source, local, free. Stop renting cloud GPUs — your pocket has a model now.",
+    "Turn your Android phone into a private AI and backend HTTP server. Open-source, local, free base. Stop renting cloud servers — your pocket is the cloud now.",
   keywords: [
     "local LLM",
-    "android ai server",
+    "android server",
     "llama.cpp android",
     "private ai",
     "offline ai",
     "buildify",
     "gguf",
     "ollama on phone",
+    "custom domain",
+    "pricing",
   ],
   authors: [{ name: "Buildify" }],
   openGraph: {
-    title: "Buildify · Your phone speaks API now",
+    title: "Buildify · Host anything from your pocket",
     description:
-      "Open-source Android app that runs local LLMs and exposes an OpenAI-compatible API on your Wi-Fi.",
+      "Open-source Android app that runs local LLMs and exposes an OpenAI-compatible API on your Wi-Fi or public tunnel.",
     url: siteUrl,
     siteName: "Buildify",
     type: "website",
